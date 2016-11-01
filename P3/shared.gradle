@@ -1,0 +1,89 @@
+
+apply plugin: "java"
+buildDir 'out'
+group 'base'
+
+
+compileJava {
+    options.encoding = "ISO-8859-1"
+}
+
+ext{
+    obfuscateEnabled = project.ext.has("obfuscateEnabled") ? obfuscateEnabled.equals("true"): false
+}
+
+
+
+
+repositories {
+    jcenter()
+}
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath "com.bmuschko:gradle-cargo-plugin:2.2.3"
+    }
+}
+
+
+apply plugin: com.bmuschko.gradle.cargo.CargoBasePlugin
+apply plugin: 'java'
+
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath "com.bmuschko:gradle-cargo-plugin:2.2.3"
+    }
+}
+
+apply plugin: com.bmuschko.gradle.cargo.CargoBasePlugin
+apply plugin: 'java'
+apply plugin: 'findbugs'
+group 'base'
+
+sourceCompatibility = 1.8
+
+
+
+
+task buildWar(type:Jar, dependsOn: jar) {
+    outputs.upToDateWhen { false }
+
+    manifest {
+        attributes("Implementation-Version": System.currentTimeMillis())
+    }
+    archiveName = 'p3_' + project.name + '.war'
+
+    entryCompression = ZipEntryCompression.STORED
+    from(file("warcontent"))
+
+    from(file("build/classes"))
+
+    doFirst {
+        println "Now building war file .... "
+    }
+}
+
+import com.bmuschko.gradle.cargo.convention.Deployable
+import com.bmuschko.gradle.cargo.tasks.remote.CargoDeployRemote
+import com.bmuschko.gradle.cargo.tasks.remote.CargoUndeployRemote
+import com.bmuschko.gradle.cargo.tasks.remote.CargoRedeployRemote
+
+task deploy(dependsOn: [buildWar], type: CargoRedeployRemote) {
+    containerId = 'tomcat7x'
+    hostname = 'localhost'
+    port = 8080
+    username = 'admin'
+    password = 'manager'
+
+    deployables = [new Deployable(file: buildWar.getOutputs().getFiles().singleFile, context: 'complete_' + project.name)]
+    doFirst {
+        println "Now deploying war file to tomcat server .... "
+    }
+}
